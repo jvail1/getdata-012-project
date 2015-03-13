@@ -12,6 +12,7 @@ if(!file.exists("UCI HAR Dataset")) {
 }
 
 # Read in all necessary data files.
+message("Loading data...")
 activityLabels <- read.table("UCI HAR Dataset/activity_labels.txt")
 features <- read.table("UCI HAR Dataset/features.txt")
 test_x <- read.table("UCI HAR Dataset/test/X_test.txt")
@@ -20,6 +21,7 @@ test_subject <- read.table("UCI HAR Dataset/test/subject_test.txt")
 train_x <- read.table("UCI HAR Dataset/train/X_train.txt")
 train_y <- read.table("UCI HAR Dataset/train/y_train.txt")
 train_subject <- read.table("UCI HAR Dataset/train/subject_train.txt")
+message("Done!")
 
 # Merge the training and test data set into one data set.
 data <- rbind(test_x, train_x)
@@ -41,17 +43,17 @@ activity$V1 <- factor(activity$V1, labels = activityLabels$V2)
 # Label data set with descriptive variable names
 # Note that wide format is adopted instead of narrow
 # "-" and "()" are replaced with either "_" or ""
-data <- cbind(subject, activity, data)
+tidyData <- cbind(subject, activity, data)
 meanLabel <- gsub("__", "", gsub('[^A-Za-z]', '_', features$V2[meanIdx]))
 stdLabel <- gsub("__", "", gsub('[^A-Za-z]', '_', features$V2[stdIdx]))
-names(data) <- c("Subject", "Activity", as.character(meanLabel), as.character(stdLabel))
+names(tidyData) <- c("Subject", "Activity", as.character(meanLabel), as.character(stdLabel))
 
 # Remove all other unecessary data frames and variables
-rm(list=setdiff(ls(), "data"))
+rm(list=setdiff(ls(), "tidyData"))
 
 # Creates a second, independent tidy data set with the average of each
 # variable for each activity and each subject.
-tidyData <- group_by(data, Subject, Activity) %>% summarise_each(funs(mean))
+output <- group_by(tidyData, Subject, Activity) %>% summarise_each(funs(mean))
 
 # Write to txt file
-write.table(tidyData, file="output.txt", row.names = FALSE)
+write.table(output, file="output.txt", row.names = FALSE)
