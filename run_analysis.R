@@ -12,16 +12,19 @@ if(!file.exists("UCI HAR Dataset")) {
 }
 
 # Read in all necessary data files.
-message("Loading data...")
+message("Loading data ...")
 activityLabels <- read.table("UCI HAR Dataset/activity_labels.txt")
 features <- read.table("UCI HAR Dataset/features.txt")
+message("25% ...")
 test_x <- read.table("UCI HAR Dataset/test/X_test.txt")
 test_y <- read.table("UCI HAR Dataset/test/y_test.txt")
+message("50% ...")
 test_subject <- read.table("UCI HAR Dataset/test/subject_test.txt")
 train_x <- read.table("UCI HAR Dataset/train/X_train.txt")
+message("75% ...")
 train_y <- read.table("UCI HAR Dataset/train/y_train.txt")
 train_subject <- read.table("UCI HAR Dataset/train/subject_train.txt")
-message("Done!")
+message("100% Done!")
 
 # Merge the training and test data set into one data set.
 data <- rbind(test_x, train_x)
