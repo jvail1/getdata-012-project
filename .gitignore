@@ -13,4 +13,8 @@
 # Datasets
 *.zip
 UCI*
+
+# Knitr files
 *.html
+*.pdf
+CodeBook_cache/
