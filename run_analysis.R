@@ -32,7 +32,6 @@ activity <- rbind(test_y, train_y)
 subject <- rbind(test_subject, train_subject)
 
 # Extract mean() and std() for each measurement, then
-# cbind() with subject and activity columns.
 # Note that measurement like meanFreq() etc. are ignored.
 meanIdx <- grep("mean\\(\\)", features$V2)
 stdIdx <- grep("std\\(\\)", features$V2)
@@ -42,8 +41,8 @@ data <- data[, c(meanIdx, stdIdx)]
 # numeric to factor with activity names from activityLabels.
 activity$V1 <- factor(activity$V1, labels = activityLabels$V2)
 
-# Putting it all together to get a tidy data set
-# Label data set with descriptive variable names
+# Putting it all together to get a tidy data set using cbind().
+# Label data set with descriptive variable names.
 # Note that wide format is adopted instead of narrow
 # "-" and "()" are replaced with either "_" or ""
 tidyData <- cbind(subject, activity, data)
