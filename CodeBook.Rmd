@@ -1,11 +1,137 @@
 ---
 title: "Getting and Cleaning Data Course Project Codebook"
 author: "Xiaoning Wang"
-date: "February 12, 2015"
+date: "March 13, 2015"
+output: html_document
 ---
 
-You will be required to submit:
-1) a tidy data set as described below.
-2) a link to a Github repository with your script for performing the analysis.
-3) a code book that describes the variables, the data, and any transformations or work that you performed to clean up the data called CodeBook.md.
-4) You should also include a README.md in the repo with your scripts. This repo explains how all of the scripts work and how they are connected.
+### Preparation
+
+In this course project, _dplyr_ library is used to clean and tidy the data set.
+```{r load-library}
+suppressMessages(library(dplyr))
+setwd("~/Dropbox/Programming/Coursera/getdata-012/getdata-012-project")
+```
+
+Next, check if the data file exists in the working directory, download from source URL if necessary.
+```{r download-data}
+if(!file.exists("UCI HAR Dataset")) {
+    if(!file.exists("dataset.zip")){
+        fileURL <- "http://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+        download.file (fileURL, "dataset.zip", mode = "wb")
+    }
+    unzip("dataset.zip")
+}
+```
+
+The data files are unarchived into _"UCI HAR Dataset"_ folder, and ready to be loaded. According to the _README.txt_ file from the data set, and the assignment description, the following 8 data files should be loaded into R environment for processing. Several messages are printed to the console to notify users the data-loading progress. They are commented out here.
+```{r load-data, cache=TRUE}
+# message("Loading data ...")
+activityLabels <- read.table("UCI HAR Dataset/activity_labels.txt")
+features <- read.table("UCI HAR Dataset/features.txt")
+# message("25% ...")
+test_x <- read.table("UCI HAR Dataset/test/X_test.txt")
+test_y <- read.table("UCI HAR Dataset/test/y_test.txt")
+# message("50% ...")
+test_subject <- read.table("UCI HAR Dataset/test/subject_test.txt")
+train_x <- read.table("UCI HAR Dataset/train/X_train.txt")
+# message("75% ...")
+train_y <- read.table("UCI HAR Dataset/train/y_train.txt")
+train_subject <- read.table("UCI HAR Dataset/train/subject_train.txt")
+# message("100% Done!")
+```
+
+### Exploratory Analysis
+
+According to _README.txt_, _activityLabels_ contains numeric values to their corresponding types of activites.
+```{r activity-labels}
+summary(activityLabels)
+```
+
+_features_ contains the numeric values to their corresponding measurements.
+```{r features}
+summary(features)
+```
+
+_test\_subject_ and _train\_subject_ contain the corresponding subject numbers for each observation from both training set and test set.
+```{r subject}
+table(test_subject); table(train_subject)
+```
+
+_test\_y_ and _train\_y_ contain the corresponding activity numbers for each observation from both training set and test set.
+```{r activity}
+table(test_y); table(train_y)
+```
+
+_test\_x_ and _train\_x_ contain all the measurement data for each subject for each activities.
+```{r mearement-data}
+dim(test_x); dim(train_x)
+```
+
+### Step 1: Merge training and test sets
+
+Based on previous analysis and the dimensions of the data frames, training set and test set can be merged using _rbind()_ function.
+```{r merge-data}
+data <- rbind(test_x, train_x)
+activity <- rbind(test_y, train_y)
+subject <- rbind(test_subject, train_subject)
+```
+
+_data_ is the merged measurements data frame, and their corresponding activiy and subject numbers are merged into _activity_ and _subject_ data frames respectively.
+```{r combined-data}
+table(activity); table(subject)
+```
+
+### Step 2: Extract mean() and std() mearuement data
+
+According to _features\_info.txt_ file, and my personal understanding of the assignment, only those measurements matches exactly to _mean()_ or _std()_ are selected using _grep()_ function. Measurements such as _fBodyAcc-meanFreq()-X_ and _fBodyAcc-meanFreq()-X_ are discarded.
+```{r extract-data}
+meanIdx <- grep("mean\\(\\)", features$V2)
+stdIdx <- grep("std\\(\\)", features$V2)
+data <- data[, c(meanIdx, stdIdx)]
+dim(data)
+```
+
+_meanIdx_ and _stdIdx_ are the index of those mearuements labels matches _mean()_ and _std()_, respectively. They will be used again later when applying column names to the tidied data set.
+
+### Step 3: Use descriptive activity names
+
+Using _factor()_ function, with activity names extracted from _activityLabels_ as factor labels, _activity_ is converted to a factor with corresponding types of activities.
+```{r activity-label}
+activity$V1 <- factor(activity$V1, labels = activityLabels$V2)
+table(activity)
+```
+
+### Step 4: Label column names
+
+First, combine _subject_, _activity_, and _data_ into one data frame.
+```{r combine-data}
+tidyData <- cbind(subject, activity, data)
+```
+
+Get column labels using _meanIdx_ and _stdIdx_, replacing "-" and "()" in the measurement names with "\_" so that the column names from the output data can be correctly read into R using _read.table()_.
+```{r column-label}
+meanLabel <- gsub("__", "", gsub('[^A-Za-z]', '_', features$V2[meanIdx]))
+stdLabel <- gsub("__", "", gsub('[^A-Za-z]', '_', features$V2[stdIdx]))
+names(tidyData) <- c("Subject", "Activity", as.character(meanLabel), as.character(stdLabel))
+names(tidyData)
+```
+
+R working environment can be cleaned up with only _tidyData_ data frame left.
+```{r clean-up}
+# Remove all other unecessary data frames and variables
+rm(list=setdiff(ls(), "tidyData"))
+```
+
+The integrity of _tidyData_ can be verified whether each subject has performed each types of activity.
+```{r data-test}
+table(tidyData[,1:2])
+```
+
+### Step 5: Output data
+
+A second, independent tidy data set is created, with the average of each variable for each activity and each subject. First, using _dplyr::group\_by()_ function group _tidyData_ by _Subject_ and _Activity_. Then using _dplyr::summarise\_each()_ function apply _mean()_ to each column of the data frame. Then write the resulting data frame to _output.txt_ file, with row names neglected.
+```{r output-data}
+output <- group_by(tidyData, Subject, Activity) %>% summarise_each(funs(mean))
+write.table(output, file="output.txt", row.names = FALSE)
+```
